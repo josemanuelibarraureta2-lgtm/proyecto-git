@@ -1,0 +1,39 @@
+name: CD Workflow
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Bump Version in README
+        run: |
+          CURRENT_VER=$(grep -oP 'AppVersion-\K[0-9]+' README.md || echo "0")
+          NEXT_VER=$((CURRENT_VER + 1))
+          TIMESTAMP=$(date +'%Y-%m-%d %H:%M:%S')
+          sed -i "s/AppVersion-$CURRENT_VER/AppVersion-$NEXT_VER ($TIMESTAMP)/g" README.md
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "Bump version to AppVersion-$NEXT_VER" || echo "No changes to commit"
+          git push
+
+  validate-prod:
+    needs: bump-version
+    runs-on: self-hosted
+    steps:
+      - name: Validate PROD Token
+        run: |
+          if [ "${{ secrets.PROD_TOKEN }}" = "$LOCAL_PROD_TOKEN" ]; then
+            echo "Tokens de producción coinciden correctamente."
+          else
+            echo "Error: Los tokens de producción no coinciden."
+            exit 1
+          fi
