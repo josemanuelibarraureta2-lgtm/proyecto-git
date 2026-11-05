@@ -10,6 +10,8 @@ on:
 jobs:
   update-readme:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,9 +20,9 @@ jobs:
         run: |
           echo "Añadida feature: ${{ github.head_ref || github.ref_name }}" >> README.md
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Actualizar README con nueva feature" || echo "No changes to commit"
-          git push
+          git push origin HEAD:${{ github.ref_name }}
 
   validate-dev:
     needs: update-readme
